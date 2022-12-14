@@ -1,0 +1,40 @@
+Waist-mounted smartphone 
+
+Detections:
+
+- Vertical activity
+- Lying
+- Sitting or Static Standing
+- Horizontal activity
+- Fall
+
+1. Data collection:
+	- Body movements are centered at 20Hz
+	- Sampling frequency for accelerometer >= 40Hz
+
+2. Data preprocessing
+System readings will be composed of:
+	- Body movement
+	- Gravitationsl acceleration
+	- External vibrations (noise)
+	- Bouncing of the sensor against other objects (noise)
+
+
+In order to attenuate the noise we will use a median filter with order 3.
+
+3. Feature extraction
+We need to extract the following features:
+
+	- SMA (Signal Magnitude Area): used to measure the degree of change of human movement, the greater the number, the more violent motiton state.
+
+	- SVM (Signal magnitude Vector): Mathematic magnitude of the acceleration vector.
+
+	- TA (Tilt Angle): Indicates the angle of the mobile phone with respect to the Y-axis. In a vertical position, this number should be 0-degrees.
+
+4. Classification algorithm
+Basic FSM with some defined states and conditions.
+
+	
+
+
+
