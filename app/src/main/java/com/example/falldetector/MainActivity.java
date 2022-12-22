@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float current_registered_val_g[] = new float[3];
 
     // Circular buffer for computations
-    private final int MAX_REGISTERED_VALUES = 10;
+    private final int MAX_REGISTERED_VALUES = 20;
     private float registered_values [][] = new float[3][MAX_REGISTERED_VALUES];
     private float registered_sampling_periods [] = new float[MAX_REGISTERED_VALUES];
 
@@ -58,8 +58,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float ta = 0.0f;
 
     // Thresholds
-    final private float SMA_THREHSOLD = 1.2f;
-    final private float SVM_THREHSOLD = 1.7f;
+    final private float SMA_THREHSOLD = 1.5f;
+    final private float SVM_THREHSOLD = 2.5f;
     final private float TA_THREHSOLD = 40.0f;
 
     // Filtering variables for smoothing
@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (Environment.isExternalStorageManager()) {
             //todo when permission is granted
-            create_new_log_file("TEST");
+//            create_new_log_file("TEST");
         } else {
             //request for the permission
             Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
@@ -221,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         long currentTime = System.currentTimeMillis();
         float dt = (float) ((currentTime - lastTime) * 0.001);
         lastTime = currentTime;
-//        Log.d("SAMPLIG PERIOD (ms)", String.format("%f", dt));
+        Log.d("SAMPLIG PERIOD (ms)", String.format("%f", dt));
 
         // Filter
         this.filter(x, y, z);
@@ -274,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_GAME);
     }
 
     protected void updateSVM(){
@@ -347,12 +347,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         for(int i = 1; i < MAX_REGISTERED_VALUES; i++){
             float dt = this.registered_sampling_periods[i];
 
-            int_x += dt * 0.5 * (this.registered_values[0][i] - this.registered_values[0][i-1]);
-            int_y += dt * 0.5 * (this.registered_values[1][i] - this.registered_values[1][i-1]);
-            int_z += dt * 0.5 * (this.registered_values[2][i] - this.registered_values[2][i-1]);
+            int_x += Math.abs(dt * 0.5 * (this.registered_values[0][i] + this.registered_values[0][i-1]));
+            int_y += Math.abs(dt * 0.5 * (this.registered_values[1][i] + this.registered_values[1][i-1]));
+            int_z += Math.abs(dt * 0.5 * (this.registered_values[2][i] + this.registered_values[2][i-1]));
         }
 
+
         this.sma = (int_x + int_y + int_z) / time;
+
+        Log.d("SMA_DEBUG", String.format("%f", this.sma));
     }
 
     private enum STATE {VERTICAL_ACTIVITY, FALL, HORIZONTAL_ACTIVITY, SITTING, LYING};
@@ -360,9 +363,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private void detect_state(){
         if(this.sma > SMA_THREHSOLD){
-            if(this.svm > SVM_THREHSOLD)        this.current_state = STATE.HORIZONTAL_ACTIVITY;
-            else if (this.ta > TA_THREHSOLD)    this.current_state = STATE.VERTICAL_ACTIVITY;
-            else                                this.current_state = STATE.FALL;
+            if(!(this.svm > SVM_THREHSOLD)){
+                this.current_state = STATE.HORIZONTAL_ACTIVITY;
+            } else {
+                if (!(this.ta > TA_THREHSOLD))    this.current_state = STATE.VERTICAL_ACTIVITY;
+                else                              this.current_state = STATE.FALL;
+            }
         }else{
             if(this.ta > TA_THREHSOLD)          this.current_state = STATE.SITTING;
             else                                this.current_state = STATE.LYING;
@@ -407,6 +413,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * @brief Append all the data to a new lane in the log file
      * */
     private void append_new_data_to_log(){
+        if(this.is_recording){
         try {
             // Add time differential
             this.log_file_writter.write(Float.toString(this.registered_sampling_periods[this.current_registered_value_index]));
@@ -441,7 +448,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }catch (IOException e){
             Log.d("RECORD_DATA_E", String.valueOf(e));
         }
-    }
+    }}
 
     /**
      * @brief Create a new log file with a given name
