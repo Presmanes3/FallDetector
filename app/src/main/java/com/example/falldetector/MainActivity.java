@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float registered_sampling_periods [] = new float[MAX_REGISTERED_VALUES];
 
     // Values for update the state
-    private final float REFRESH_IMAGE_TIME = 25; // 25 muestras, 25*20ms =0.5s
+    private final float REFRESH_IMAGE_TIME = 100; 
 
     private boolean refresh_image = true;
 
