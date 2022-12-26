@@ -121,12 +121,9 @@ figure
 subplot(1,3,1), plot(time, sma)
 yline(2,'LineStyle','-.','Color','red','LineWidth',3)
 legend('sma')
-<<<<<<< HEAD
 subplot(1,3,2), plot(time, svm);
 yline(4,'LineStyle','-.','Color','red','LineWidth',3)
-=======
 subplot(1,3,2), plot(time, smv);
->>>>>>> 5f7697a81f27a0f059824bbe39c1c6dc49da8614
 legend('svm')
 subplot(1,3,3), plot(time, ta)
 yline(40,'LineStyle','-.','Color','red','LineWidth',3)
