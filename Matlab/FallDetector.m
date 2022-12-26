@@ -19,14 +19,27 @@ plot(time, M(:,5), time, M(:,6), time, M(:,7));
 title('Datos filtrados')
 legend('X','Y','Z')
 
+max(M(:,8))
+max(M(:,9))
+max(M(:,10))
+min(M(:,8))
+min(M(:,9))
+min(M(:,10))
+
+
+
 figure
-subplot(1,3,1), plot(time, M(:,8))
+plot(time, M(:,8))
 legend('sma')
-subplot(1,3,2), plot(time, M(:,9));
-legend('sva')
-subplot(1,3,3), plot(time, M(:,10))
+sgtitle('SMA','FontWeight', 'bold','FontSize',11)
+figure
+plot(time, M(:,9));
+legend('svm')
+sgtitle('SVM','FontWeight', 'bold','FontSize',11)
+figure
+plot(time, M(:,10))
 legend('ta')
-sgtitle('Variables del algoritmo','FontWeight', 'bold','FontSize',11)
+sgtitle('TA','FontWeight', 'bold','FontSize',11)
 
 % Conversión de m/s^2 a g
 M(:,2) = M(:,2)./9.80665;
@@ -107,7 +120,7 @@ end
 figure
 subplot(1,3,1), plot(time, sma)
 legend('sma')
-subplot(1,3,2), plot(time, svm);
+subplot(1,3,2), plot(time, smv);
 legend('svm')
 subplot(1,3,3), plot(time, ta)
 legend('ta')
