@@ -17,6 +17,7 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
@@ -56,6 +57,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float registered_values [][] = new float[3][MAX_REGISTERED_VALUES];
     private float registered_sampling_periods [] = new float[MAX_REGISTERED_VALUES];
 
+    // Values for update the state
+    private final float REFRESH_IMAGE_TIME = 25; // 25 muestras, 25*20ms =0.5s
+
+    private boolean refresh_image = true;
+
+    private float counter_refresher = 0.0f;
+
+
     // Values for algorithm
     private float sma = 0.0f;
     private double svm = 0.0f;
@@ -74,6 +83,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final int MAX_ELEMENTS_IN_CHART = 200;
     private final int CHART_UPDATE_RATE = 200;
     private int total_elements_in_chart = 0;
+
+    private ImageView image;
 
     // Log system
     private FileWriter log_file_writter;
@@ -101,6 +112,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+        image = findViewById(R.id.imageView);
 
         // Set start and stop button callbacks
         start_logging = findViewById(R.id.start_logging);
@@ -180,17 +193,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         add_new_value_to_chart();
 
-        // Compute values for algorithm
-        if(registered_values_overflow){
-            registered_values_overflow = false;
-
-        }
-
 
         if(this.svm >= SVM_THREHSOLD) Log.d("SVM > TRH (ms)", String.format("%f", this.svm));
 
-        // Run algorithm
+        // We compute the state each cycle but we refresh it slower in order to see how it changes
         this.detect_state();
+        if(counter_refresher + 1 >= REFRESH_IMAGE_TIME) {
+            counter_refresher = 0;
+            refresh_image = true;
+        }
+        else {
+            counter_refresher++;
+            refresh_image = false;
+        }
         this.run_state();
 
         this.append_new_data_to_log();
@@ -385,18 +400,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         switch (this.current_state){
             case VERTICAL_ACTIVITY:
                 Log.d("CURRENT_STATE > ","VERTICAL ACTIVITY");
-            break;
+                if(refresh_image == true) image.setImageResource(R.drawable.vertical_mov);
+                break;
             case FALL:
                 Log.d("CURRENT_STATE > ", "FALL");
-            break;
+                if(refresh_image == true) image.setImageResource(R.drawable.falling);
+                break;
             case HORIZONTAL_ACTIVITY:
                 Log.d("CURRENT_STATE > ", "HORIZONTAL ACTIVITY");
+                if(refresh_image == true) image.setImageResource(R.drawable.vertical_mov);
                 break;
             case SITTING:
                 Log.d("CURRENT_STATE > ", "SITTING");
+                if(refresh_image == true) image.setImageResource(R.drawable.sitting);
                 break;
             case LYING:
                 Log.d("CURRENT_STATE > ", "LYING");
+                if(refresh_image == true) image.setImageResource(R.drawable.lying);
                 break;
         }
     }

@@ -72,7 +72,7 @@ title(sprintf('Datos Aceleración Filtrados para N = %d', N))
 legend('X','Y','Z')
 
 sma = zeros(1,length(M(:,1)));
-smv = zeros(1,length(M(:,1)));
+svm = zeros(1,length(M(:,1)));
 ta = zeros(1,length(M(:,1)));
 
 for i=1:length(M(:,1))
@@ -99,16 +99,16 @@ for i=1:length(M(:,1))
    end
 
    sma(i) = (x_sma + y_sma + z_sma)/total_time;
-   smv(i) = sqrt(x_filtered(i)^2 + y_filtered(i)^2 + z_filtered(i)^2);
-   ta(i) = asind(y_filtered(i)/smv(i));
+   svm(i) = sqrt(x_filtered(i)^2 + y_filtered(i)^2 + z_filtered(i)^2);
+   ta(i) = asind(y_filtered(i)/svm(i));
 
 end
 
 figure
 subplot(1,3,1), plot(time, sma)
 legend('sma')
-subplot(1,3,2), plot(time, smv);
-legend('smv')
+subplot(1,3,2), plot(time, svm);
+legend('svm')
 subplot(1,3,3), plot(time, ta)
 legend('ta')
 sgtitle(sprintf('Variables del algoritmo para N = %d', N),'FontWeight', 'bold','FontSize',11)
