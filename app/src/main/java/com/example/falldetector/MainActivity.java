@@ -17,6 +17,7 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
@@ -28,10 +29,14 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.components.Legend.LegendForm;
+import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.utils.ColorTemplate;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -52,6 +57,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float registered_values [][] = new float[3][MAX_REGISTERED_VALUES];
     private float registered_sampling_periods [] = new float[MAX_REGISTERED_VALUES];
 
+    // Values for update the state
+    private final float REFRESH_IMAGE_TIME = 100; 
+
+    private boolean refresh_image = true;
+
+    private float counter_refresher = 0.0f;
+
+
     // Values for algorithm
     private float sma = 0.0f;
     private double svm = 0.0f;
@@ -67,13 +80,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float filter_inputs_arrays [][] = new float[3][MEAN_FILTER_ORDER];
     private float filter_outputs [] = new float[3];
 
-    private final int MAX_ELEMENTS_IN_CHART = 100;
-    private final int CHART_UPDATE_RATE = 100;
+    private final int MAX_ELEMENTS_IN_CHART = 200;
+    private final int CHART_UPDATE_RATE = 200;
     private int total_elements_in_chart = 0;
+
+    private ImageView image;
 
     // Log system
     private FileWriter log_file_writter;
     private boolean is_recording = false;
+
+    private Button start_logging;
+    private Button stop_logging;
 
     // others
     final private float RAD_TO_DEG = 57.2958f;
@@ -84,8 +102,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final List<Entry> entriesX = new ArrayList<Entry>();
     private final List<Entry> entriesY = new ArrayList<Entry>();
     private final List<Entry> entriesZ = new ArrayList<Entry>();
-
-    final private String [] chart_legend = {"Acceleration X", "Acceleration Y", "Acceleration Z"};
+    private final String [] chart_legend = {"Acceleration X (g)", "Acceleration Y (g)", "Acceleration Z (g)"};
 
 
     @Override
@@ -96,11 +113,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
-        // Set start and stop button callbacks
-        Button start_logging = findViewById(R.id.start_logging);
-        Button stop_logging = findViewById(R.id.stop_logging);
+        image = findViewById(R.id.imageView);
 
-        this.setup_chart();
+        // Set start and stop button callbacks
+        start_logging = findViewById(R.id.start_logging);
+        stop_logging = findViewById(R.id.stop_logging);
 
         start_logging.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -118,6 +135,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
+        lineChart = findViewById(R.id.lineChart);
+
         if (Environment.isExternalStorageManager()) {
             //todo when permission is granted
 //            create_new_log_file("TEST");
@@ -128,81 +147,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             intent.setData(uri);
             startActivity(intent);
         }
-
-
     }
 
-
-    // Chart functions:
-    private void setup_chart(){
-        this.lineChart = findViewById(R.id.lineChart);
-    }
-
-    private void add_new_value_to_chart(){
-        // Check if it is possible to add a new element and delete the first otherwise
-
-        if(this.total_elements_in_chart + 1 >= this.MAX_ELEMENTS_IN_CHART){
-            this.entriesX.remove(0);
-            this.entriesY.remove(0);
-            this.entriesZ.remove(0);
-        }
-
-        // Add new entry
-
-        Entry new_entry_X = new Entry((float) (this.total_elements_in_chart * this.CHART_UPDATE_RATE * 0.001), this.current_registered_val_g[0]);
-        Entry new_entry_Y = new Entry((float) (this.total_elements_in_chart * this.CHART_UPDATE_RATE * 0.001), this.current_registered_val_g[1]);
-        Entry new_entry_Z = new Entry((float) (this.total_elements_in_chart * this.CHART_UPDATE_RATE * 0.001), this.current_registered_val_g[2]);
-
-        this.entriesX.add(new_entry_X);
-        this.entriesY.add(new_entry_Y);
-        this.entriesZ.add(new_entry_Z);
-        this.total_elements_in_chart++;
-    }
-
-    private void update_chart(){
-        LineDataSet dataSetX = new LineDataSet(entriesX, this.chart_legend[0]); // add entries to dataset
-        LineDataSet dataSetY = new LineDataSet(entriesY, this.chart_legend[1]); // add entries to dataset
-        LineDataSet dataSetZ = new LineDataSet(entriesZ, this.chart_legend[2]); // add entries to dataset
-
-        // More styling
-        dataSetX.setColor(Color.BLACK);
-        dataSetX.setCircleColor(Color.BLACK);
-        dataSetX.setLineWidth(1f);
-        dataSetX.setCircleRadius(1f);
-        dataSetX.setDrawCircleHole(false);
-
-        dataSetY.setColor(Color.RED);
-        dataSetY.setCircleColor(Color.RED);
-        dataSetY.setLineWidth(1f);
-        dataSetY.setCircleRadius(1f);
-        dataSetY.setDrawCircleHole(false);
-
-        dataSetZ.setColor(Color.GREEN);
-        dataSetZ.setCircleColor(Color.GREEN);
-        dataSetZ.setLineWidth(1f);
-        dataSetZ.setCircleRadius(1f);
-        dataSetZ.setDrawCircleHole(false);
-
-
-        LineData lineData = new LineData(dataSetX, dataSetY, dataSetZ);
-        lineChart.setData(lineData);
-
-        // Styling
-        lineChart.setBackgroundColor(Color.WHITE); // funciona!
-        lineChart.getDescription().setEnabled(false);
-        lineChart.setTouchEnabled(true);
-
-        lineChart.getAxisRight().setEnabled(false);
-
-        // Apply information to chart
-        lineChart.invalidate();
-    }
 
     @Override
     public final void onAccuracyChanged(Sensor sensor, int accuracy) {
         // Do something here if sensor accuracy changes.
     }
 
+    private long currentTime = (long) 0.0;
     private long lastTime = (long) 0.0;
 
     @Override
@@ -218,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         float z = this.current_registered_val_g[2];
 
         // Compute time differential in between different samples
-        long currentTime = System.currentTimeMillis();
+        currentTime = System.currentTimeMillis();
         float dt = (float) ((currentTime - lastTime) * 0.001);
         lastTime = currentTime;
         Log.d("SAMPLIG PERIOD (ms)", String.format("%f", dt));
@@ -233,22 +186,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Register values in the circular buffer
         this.register_value(x, y, z, dt);
 
-        // Compute values for algorithm
-        if(registered_values_overflow){
-            registered_values_overflow = false;
-            this.updateSMA();
-        }
-
+        this.updateSMA();
         this.updateSVM();
         this.updateTA();
+        update_chart();
 
         add_new_value_to_chart();
-        update_chart();
+
 
         if(this.svm >= SVM_THREHSOLD) Log.d("SVM > TRH (ms)", String.format("%f", this.svm));
 
-        // Run algorithm
+        // We compute the state each cycle but we refresh it slower in order to see how it changes
         this.detect_state();
+        if(counter_refresher + 1 >= REFRESH_IMAGE_TIME) {
+            counter_refresher = 0;
+            refresh_image = true;
+        }
+        else {
+            counter_refresher++;
+            refresh_image = false;
+        }
         this.run_state();
 
         this.append_new_data_to_log();
@@ -311,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Circular buffer
         if(current_filter_input_index + 1 >= MEAN_FILTER_ORDER) {
             current_filter_input_index = 0;
-        }else current_filter_input_index += 1;
+        } else current_filter_input_index++;
 //
 //        // Compute mean by assuming dt is always the same, which is not true.
         float x_add = 0.0f;
@@ -334,28 +291,92 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void updateSMA(){
-        float time = 0.0f;
+        float total_time = 0.0f;
 
         for(int i = 0; i < MAX_REGISTERED_VALUES; i++){
-            time += this.registered_sampling_periods[i];
+            total_time += this.registered_sampling_periods[i];
         }
 
-        float int_x = (float) (this.registered_sampling_periods[0]*0.5*(this.registered_values[0][0]));
-        float int_y = (float) (this.registered_sampling_periods[0]*0.5*(this.registered_values[1][0]));
-        float int_z = (float) (this.registered_sampling_periods[0]*0.5*(this.registered_values[2][0]));
+        float sum_x = 0;
+        float sum_y = 0;
+        float sum_z = 0;
 
-        for(int i = 1; i < MAX_REGISTERED_VALUES; i++){
+        for(int i = 0; i < MAX_REGISTERED_VALUES; i++){
             float dt = this.registered_sampling_periods[i];
-
-            int_x += Math.abs(dt * 0.5 * (this.registered_values[0][i] + this.registered_values[0][i-1]));
-            int_y += Math.abs(dt * 0.5 * (this.registered_values[1][i] + this.registered_values[1][i-1]));
-            int_z += Math.abs(dt * 0.5 * (this.registered_values[2][i] + this.registered_values[2][i-1]));
+            sum_x += Math.abs(dt * this.registered_values[0][i]);
+            sum_y += Math.abs(dt * this.registered_values[1][i]);
+            sum_z += Math.abs(dt * this.registered_values[2][i]);
         }
 
 
-        this.sma = (int_x + int_y + int_z) / time;
+        this.sma = (sum_x + sum_y + sum_z) / total_time;
 
         Log.d("SMA_DEBUG", String.format("%f", this.sma));
+    }
+
+    // Chart functions:
+    private void add_new_value_to_chart(){
+        // Check if it is possible to add a new element and delete the first otherwise
+        if(this.total_elements_in_chart +1 >= this.MAX_ELEMENTS_IN_CHART){
+            this.entriesX.remove(0);
+            this.entriesY.remove(0);
+            this.entriesZ.remove(0);
+        }
+
+        // Add new entry
+        Entry new_entry_X = new Entry((float) (this.total_elements_in_chart * this.CHART_UPDATE_RATE * 0.001), this.current_registered_val_g[0]);
+        Entry new_entry_Y = new Entry((float) (this.total_elements_in_chart * this.CHART_UPDATE_RATE * 0.001), this.current_registered_val_g[1]);
+        Entry new_entry_Z = new Entry((float) (this.total_elements_in_chart * this.CHART_UPDATE_RATE * 0.001), this.current_registered_val_g[2]);
+
+        this.entriesX.add(new_entry_X);
+        this.entriesY.add(new_entry_Y);
+        this.entriesZ.add(new_entry_Z);
+        this.total_elements_in_chart++;
+    }
+
+    private void update_chart(){
+        LineDataSet dataSetX = new LineDataSet(entriesX, this.chart_legend[0]); // add entries to dataset
+        LineDataSet dataSetY = new LineDataSet(entriesY, this.chart_legend[1]); // add entries to dataset
+        LineDataSet dataSetZ = new LineDataSet(entriesZ, this.chart_legend[2]); // add entries to dataset
+
+        // More styling
+        dataSetX.setColor(Color.BLUE);
+        dataSetX.setCircleColor(Color.BLUE);
+        dataSetX.setLineWidth(1f);
+        dataSetX.setCircleRadius(1f);
+        dataSetX.setDrawCircleHole(false);
+
+        dataSetY.setColor(Color.GREEN);
+        dataSetY.setCircleColor(Color.GREEN);
+        dataSetY.setLineWidth(1f);
+        dataSetY.setCircleRadius(1f);
+        dataSetY.setDrawCircleHole(false);
+
+        dataSetZ.setColor(Color.RED);
+        dataSetZ.setCircleColor(Color.RED);
+        dataSetZ.setLineWidth(1f);
+        dataSetZ.setCircleRadius(1f);
+        dataSetZ.setDrawCircleHole(false);
+
+        XAxis xAxis = lineChart.getXAxis();
+        xAxis.setTextColor(Color.WHITE);
+        YAxis leftAxis = lineChart.getAxisLeft();
+        leftAxis.setTextColor(Color.WHITE);
+
+        lineChart.getLegend().setTextColor(Color.WHITE);
+
+        LineData lineData = new LineData(dataSetX, dataSetY, dataSetZ);
+        lineChart.setData(lineData);
+
+        // Styling
+        lineChart.setBackgroundColor(getResources().getColor(R.color.gray_50));
+        lineChart.getDescription().setEnabled(false);
+        lineChart.setTouchEnabled(true);
+
+        lineChart.getAxisRight().setEnabled(false);
+
+        // Apply information to chart
+        lineChart.invalidate();
     }
 
     private enum STATE {VERTICAL_ACTIVITY, FALL, HORIZONTAL_ACTIVITY, SITTING, LYING};
@@ -379,18 +400,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         switch (this.current_state){
             case VERTICAL_ACTIVITY:
                 Log.d("CURRENT_STATE > ","VERTICAL ACTIVITY");
-            break;
+                if(refresh_image == true) image.setImageResource(R.drawable.vertical_mov);
+                break;
             case FALL:
                 Log.d("CURRENT_STATE > ", "FALL");
-            break;
+                if(refresh_image == true) image.setImageResource(R.drawable.falling);
+                break;
             case HORIZONTAL_ACTIVITY:
                 Log.d("CURRENT_STATE > ", "HORIZONTAL ACTIVITY");
+                if(refresh_image == true) image.setImageResource(R.drawable.vertical_mov);
                 break;
             case SITTING:
                 Log.d("CURRENT_STATE > ", "SITTING");
+                if(refresh_image == true) image.setImageResource(R.drawable.sitting);
                 break;
             case LYING:
                 Log.d("CURRENT_STATE > ", "LYING");
+                if(refresh_image == true) image.setImageResource(R.drawable.lying);
                 break;
         }
     }
