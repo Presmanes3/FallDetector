@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float registered_sampling_periods [] = new float[MAX_REGISTERED_VALUES];
 
     // Values for update the state
-    private final float REFRESH_IMAGE_TIME = 100; 
+    private final float REFRESH_IMAGE_TIME = 50;
 
     private boolean refresh_image = true;
 
@@ -388,7 +388,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 this.current_state = STATE.HORIZONTAL_ACTIVITY;
             } else {
                 if (!(this.ta > TA_THREHSOLD))    this.current_state = STATE.VERTICAL_ACTIVITY;
-                else                              this.current_state = STATE.FALL;
+                else {
+                    this.current_state = STATE.FALL;
+                    refresh_image = true;
+                }
             }
         }else{
             if(this.ta > TA_THREHSOLD)          this.current_state = STATE.SITTING;

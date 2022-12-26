@@ -1,4 +1,4 @@
-function [state] = FallDetector(CSV, N)
+function state = FallDetector(CSV, N)
 
 m = readtable(CSV);
 M = table2array(m);
@@ -106,14 +106,40 @@ end
 
 figure
 subplot(1,3,1), plot(time, sma)
+yline(2,'LineStyle','-.','Color','red','LineWidth',3)
 legend('sma')
 subplot(1,3,2), plot(time, svm);
+yline(4,'LineStyle','-.','Color','red','LineWidth',3)
 legend('svm')
 subplot(1,3,3), plot(time, ta)
+yline(40,'LineStyle','-.','Color','red','LineWidth',3)
 legend('ta')
 sgtitle(sprintf('Variables del algoritmo para N = %d', N),'FontWeight', 'bold','FontSize',11)
 
+j = 1;
+state(j) = "null";
 
-
-
+for i=1:length(sma)
+    if sma(i) >= 2
+        if svm(i) >=4
+            if ta(i) < 40
+                cur_state = "caida";
+            else
+                cur_state = "subiendo / levatandose";
+            end
+        else
+            cur_state = "caminando";
+        end
+    elseif ta(i) >= 40
+        cur_state = "sentado / de pie";
+    else
+        cur_state = "tumbado";
+    end
+    if cur_state ~= state(j) 
+        state(j) = cur_state;
+        j = j+1;
+        state(j) = cur_state;
+    end
 end
+
+state = state(1:end-1);
